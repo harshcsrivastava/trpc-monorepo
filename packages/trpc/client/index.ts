@@ -1,4 +1,4 @@
-import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
+ import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 
 import { type ServerRouter } from "../server";
 

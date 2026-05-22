@@ -12,6 +12,7 @@ import {
   SignInUserWithEmailAndPasswordType,
 } from "./model";
 import { env } from "../env";
+import { email } from "zod";
 
 class UserService {
   private async getUserByEmail(email: string) {
@@ -25,6 +26,32 @@ class UserService {
     const token = JWT.sign({ id }, env.JWT_SECRET);
     return { token };
   }
+
+  private async verifyUserToken(token: string) {
+    try {
+      const verificationResult = JWT.verify(token, env.JWT_SECRET) as GenerateUserTokenPayloadType; // typecasting ki jo generate ke time me payload diya vhi
+      return verificationResult;
+    } catch (error) {
+      throw new Error(`Invalid User Token`);
+    }
+  }
+
+  private async getUserInfoById(id: string) {
+    const user = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+        profileImageUrl: usersTable.profileImageUrl,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, id));
+
+    if (!user || user.length === 0) throw new Error(`User with ${id} does not exist`);
+
+    return user[0]!;
+  }
+
   public async createUserWithEmailAndPassword(payload: CreateUserWithEmailAndPasswordInputType) {
     // Business Logic
     const { fullName, email, password } =
@@ -73,6 +100,12 @@ class UserService {
       id: existingUser.id,
       token,
     };
+  }
+
+  public async verifyAndDecodeUserToken(token: string) {
+    const { id } = await this.verifyUserToken(token);
+    const userInfo = await this.getUserInfoById(id);
+    return { ...userInfo };
   }
 }
 

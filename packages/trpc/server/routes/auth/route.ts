@@ -1,10 +1,12 @@
 import { userService } from "../../services";
 import { publicProcedure, router } from "../../trpc";
-import { setAuthenticationCookie } from "../../utils/cookie";
+import { getAuthenticationCookie, setAuthenticationCookie } from "../../utils/cookie";
 import { generatePath } from "../../utils/path-generator";
 import {
   createUserWithEmailAndPasswordInputModel,
   createUserWithEmailAndPasswordOutputModel,
+  getLoggedInUserInfoInputModel,
+  getLoggedInUserInfoOutputModel,
   signInUserWithEmailAndPasswordInputModel,
   signInUserWithEmailAndPasswordOutputModel,
 } from "./model";
@@ -59,6 +61,34 @@ export const authRouter = router({
 
       return {
         id,
+      };
+    }),
+
+  getLoggedInUserInfo: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getLoggedInUserInfo"),
+        tags: TAGS,
+      },
+    })
+    .input(getLoggedInUserInfoInputModel)
+    .output(getLoggedInUserInfoOutputModel)
+    .query(async ({ ctx }) => {
+      const userToken = getAuthenticationCookie(ctx);
+
+      if (!userToken) throw new Error(`No token found. User not Logged in`);
+
+      const { id, email, fullName, profileImageUrl } =
+        await userService.verifyAndDecodeUserToken(userToken);
+
+      // WHY destructure extensively? Due to Prototype and some built in function which may cause overlap in future.
+      //  and we are pass by copy not pass by reference
+      return {
+        id,
+        email,
+        fullName,
+        profileImageUrl,
       };
     }),
 });

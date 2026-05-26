@@ -1,57 +1,45 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 import { Form, Rss, Link, ChartNoAxesColumn } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-const summary = [
-  { title: "Total Forms", value: 12 },
-  { title: "Published", value: 7 },
-  { title: "Unlisted", value: 3 },
-  { title: "Total Responses", value: "1,248" },
-];
-
-const forms = [
-  {
-    title: "Minecraft Server Feedback",
-    subtitle: "Help us improve your server experience",
-    responses: 342,
-    status: "Published",
-    visibility: "Public",
-    updated: "May 20, 2025",
-    img: "/dashboard/bg/image-2.png",
-  },
-  {
-    title: "Event Registration Form",
-    subtitle: "Register for our upcoming Minecraft event",
-    responses: 156,
-    status: "Published",
-    visibility: "Unlisted",
-    updated: "May 18, 2025",
-    img: "/dashboard/bg/image-1.png",
-  },
-  {
-    title: "Build Contest Submission",
-    subtitle: "Submit your amazing builds",
-    responses: 98,
-    status: "Published",
-    visibility: "Public",
-    updated: "May 15, 2025",
-    img: "/dashboard/bg/image-3.png",
-  },
-];
+import { useGetForm } from "~/hooks/api/form";
+import FormList from "~/components/FormList";
 
 export default function Page() {
   const router = useRouter();
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
+
+  const { formsDataById, isLoading, isFetching } = useGetForm({ pageSize, page });
+  const forms = formsDataById?.forms ?? [];
+  const totalCount = formsDataById?.metaData.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const start = formsDataById?.metaData.start ?? 0;
+  const end = formsDataById?.metaData.end ?? 0;
+  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  const totalResponses = forms.reduce((sum, form) => sum + (form.responseCount ?? 0), 0);
+  const publishedCount = forms.filter(
+    (form) => String(form.visibility).toLowerCase() === "public",
+  ).length;
+  const unlistedCount = forms.filter(
+    (form) => String(form.visibility).toLowerCase() === "unlisted",
+  ).length;
 
   const handleClick = () => {
     router.replace("/forms");
   };
+
   return (
     <div className="w-full pb-6">
-      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {summary.map((s) => (
+        {[
+          { title: "Total Forms", value: totalCount },
+          { title: "Published", value: publishedCount },
+          { title: "Unlisted", value: unlistedCount },
+          { title: "Total Responses", value: totalResponses.toLocaleString() },
+        ].map((s) => (
           <div
             key={s.title}
             className="bg-[#111214] border border-[#626262] rounded-2xl p-4 min-h-24 flex items-start justify-between"
@@ -76,11 +64,12 @@ export default function Page() {
         ))}
       </div>
 
-      {/* Forms list */}
       <div className="bg-[#0f1113] border border-[#626262] rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-[#626262] flex items-center justify-between">
           <div>
-            <h3 className="text-[18px] font-black tracking-[0.08em] uppercase">Your Forms</h3>
+            <h3 className="text-[18px] font-black tracking-[0.08em] uppercase">
+              Your Last 3 Forms
+            </h3>
             <div className="text-[12px] text-muted-foreground uppercase tracking-[0.12em] mt-1">
               All forms you&apos;ve created
             </div>
@@ -108,77 +97,49 @@ export default function Page() {
         </div>
 
         <div>
-          {forms.map((f) => (
-            <div
-              key={f.title}
-              className="px-6 py-4 grid grid-cols-24 gap-4 items-center border-b border-[#626262] hover:bg-[#0b0d0e] min-h-20"
-            >
-              {/* FORM */}
-              <div className="col-span-12 flex items-center gap-4">
-                <div className="w-20 h-14 bg-cover bg-center rounded-lg overflow-hidden shrink-0">
-                  <Image src={f.img} alt={f.title} width={160} height={96} />
-                </div>
-                <div>
-                  <div className="text-[14px] font-black tracking-[0.06em] uppercase">
-                    {f.title}
-                  </div>
-                  <div className="text-[12px] text-muted-foreground mt-1">{f.subtitle}</div>
-                </div>
-              </div>
-
-              {/* RESPONSES */}
-              <div className="m-auto col-span-2 text-center font-black text-[16px] flex items-center justify-center gap-2">
-                {f.responses}
-                <Image
-                  src="/next.svg"
-                  alt="response icon"
-                  width={16}
-                  height={16}
-                  className="w-4 h-4 opacity-50"
-                />
-              </div>
-
-              {/* STATUS */}
-              <div className="col-span-3 m-auto">
-                <span className="px-3 py-1 rounded-full bg-[#0f8b2f] text-white text-[11px] font-black tracking-[0.08em] uppercase">
-                  {f.status}
-                </span>
-              </div>
-
-              {/* VISIBILITY */}
-              <div className="col-span-2 text-[12px] m-auto font-black tracking-[0.08em] uppercase text-[#bdbdbd]">
-                {f.visibility}
-              </div>
-
-              {/* UPDATED */}
-              <div className="m-auto col-span-2 text-[12px] text-[#bdbdbd]">{f.updated}</div>
-
-              {/* ACTIONS */}
-              <div className="col-span-3 text-right m-auto">
-                <button className="h-10 px-4 rounded-lg border border-[#626262] bg-[#0b0d0e] text-[13px] font-black tracking-[0.08em] uppercase">
-                  Edit
-                </button>
-              </div>
-            </div>
-          ))}
+          {(isLoading || isFetching) && (
+            <div className="px-6 py-4 text-sm text-muted-foreground">Loading forms...</div>
+          )}
+          {!isLoading && forms.length === 0 && (
+            <div className="px-6 py-8 text-sm text-muted-foreground">No forms found.</div>
+          )}
+          {!isLoading && <FormList forms={forms} />}
         </div>
 
         <div className="px-6 py-4 flex items-center justify-between text-[12px] text-[#9b9b9b]">
-          <div>Showing 1 to 5 of 12 forms</div>
+          <div>
+            Showing {start} to {end} of {totalCount} forms
+          </div>
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e]">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+              className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e] disabled:opacity-50"
+            >
               ‹
             </button>
-            <button className="w-10 h-10 rounded-[6px] border border-[#2c6f25] bg-[#122312] text-white">
-              1
-            </button>
-            <button className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e]">
-              2
-            </button>
-            <button className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e]">
-              3
-            </button>
-            <button className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e]">
+            {visiblePages.map((pageNumber) => (
+              <button
+                key={pageNumber}
+                type="button"
+                onClick={() => setPage(pageNumber)}
+                aria-current={pageNumber === page ? "page" : undefined}
+                className={`w-10 h-10 rounded-[6px] border ${
+                  pageNumber === page
+                    ? "border-[#2c6f25] bg-[#122312] text-white"
+                    : "border-[#626262] bg-[#0b0d0e]"
+                }`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
+              className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e] disabled:opacity-50"
+            >
               ›
             </button>
           </div>

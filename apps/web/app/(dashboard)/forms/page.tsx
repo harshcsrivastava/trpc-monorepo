@@ -14,18 +14,28 @@ import {
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { useCreateForm } from "~/hooks/api/form";
+import { useCreateForm, useGetForm } from "~/hooks/api/form";
+import FormList from "~/components/FormList";
 
 export default function Page() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   const handleCreateFormSubmit = (formData: { title: string; description: string }) => {
     void formData;
   };
 
   const { createFormWithTitleAndDescriptionAsync } = useCreateForm();
+  const { formsDataById, isLoading, isFetching } = useGetForm({ pageSize, page });
+
+  const totalCount = formsDataById?.metaData.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const start = formsDataById?.metaData.start ?? 0;
+  const end = formsDataById?.metaData.end ?? 0;
+  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -34,7 +44,7 @@ export default function Page() {
       description: description.trim(),
     });
     try {
-      const { id } = await createFormWithTitleAndDescriptionAsync({ title, description });
+      await createFormWithTitleAndDescriptionAsync({ title, description });
       setOpen(false);
       setTitle("");
       setDescription("");
@@ -45,6 +55,7 @@ export default function Page() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+      {/* Header  Forms*/}
       <div className="px-4 lg:px-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
@@ -114,6 +125,58 @@ export default function Page() {
               </DialogContent>
             </Dialog>
           </div>
+        </div>
+      </div>
+
+      <div className="px-6 py-3 text-[12px] font-black tracking-[0.12em] uppercase text-[#7d7d7d] grid grid-cols-24 gap-4 place-items-center border-b border-[#626262]">
+        <div className="col-span-12">Form</div>
+        <div className="col-span-3 text-center">Responses</div>
+        <div className="col-span-3">Visibility</div>
+        <div className="col-span-3">Updated</div>
+        <div className="col-span-3 text-right">Actions</div>
+      </div>
+
+      <div>
+        {(isLoading || isFetching) && <p>Loading...</p>}
+        {!isLoading && <FormList forms={formsDataById?.forms ?? []} />}
+      </div>
+
+      <div className="px-6 py-4 flex items-center justify-between text-[12px] text-[#9b9b9b]">
+        <div>
+          Showing {start} to {end} of {totalCount} forms
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+            className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e] disabled:opacity-50"
+          >
+            ‹
+          </button>
+          {visiblePages.map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              onClick={() => setPage(pageNumber)}
+              aria-current={pageNumber === page ? "page" : undefined}
+              className={`w-10 h-10 rounded-[6px] border ${
+                pageNumber === page
+                  ? "border-[#2c6f25] bg-[#122312] text-white"
+                  : "border-[#626262] bg-[#0b0d0e]"
+              }`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
+            className="w-10 h-10 rounded-[6px] border border-[#626262] bg-[#0b0d0e] disabled:opacity-50"
+          >
+            ›
+          </button>
         </div>
       </div>
     </div>

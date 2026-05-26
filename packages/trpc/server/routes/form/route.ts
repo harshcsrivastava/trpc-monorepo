@@ -4,6 +4,8 @@ import { generatePath } from "../../utils/path-generator";
 import {
   createFormWithTitleAndDescriptionInputModel,
   createFormWithTitleAndDescriptionOutputModel,
+  getFormsDataByUserIdInputModel,
+  getFormsDataByUserIdOutputModel,
 } from "./model";
 
 const TAGS = ["Forms"];
@@ -31,6 +33,31 @@ export const formRouter = router({
 
       return {
         id,
+      };
+    }),
+  getFormsDataByUserId: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormsDataByUserId"),
+        tags: TAGS,
+      },
+    })
+    .input(getFormsDataByUserIdInputModel)
+    .output(getFormsDataByUserIdOutputModel)
+    .query(async ({ input, ctx }) => {
+      const id = ctx.user.id;
+      const { pageSize, page } = input;
+
+      const { forms, metaData } = await formService.getFormsDataByUserId({
+        id,
+        pageSize,
+        page,
+      });
+
+      return {
+        forms,
+        metaData,
       };
     }),
 });

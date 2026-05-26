@@ -4,7 +4,13 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
 
@@ -15,7 +21,9 @@ export default function Page() {
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Forms</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Create and manage form templates</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Create and manage form templates
+            </h1>
             <p className="max-w-2xl text-sm text-muted-foreground">
               A shared dashboard layout keeps this route aligned with the rest of the admin shell
               while giving you a dedicated surface for structured input.

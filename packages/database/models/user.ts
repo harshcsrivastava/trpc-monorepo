@@ -1,4 +1,6 @@
 import { pgTable, uuid, varchar, timestamp, boolean, text } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { formsTable } from "./form";
 
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -19,3 +21,7 @@ export const usersTable = pgTable("users", {
 
 export type SelectUser = typeof usersTable.$inferSelect;
 export type InsertUser = typeof usersTable.$inferInsert;
+
+export const usersRelations = relations(usersTable, ({ many }) => ({
+  forms: many(formsTable),
+}));

@@ -1,24 +1,52 @@
+"use client";
+import { useState } from "react";
 import Link from "next/link";
 
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "~/components/ui/field";
-import { Input } from "~/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { Switch } from "~/components/ui/switch";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
+import { useCreateForm } from "~/hooks/api/form";
 
 export default function Page() {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+
+  const handleCreateFormSubmit = (formData: { title: string; description: string }) => {
+    void formData;
+  };
+
+  const { createFormWithTitleAndDescriptionAsync } = useCreateForm();
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    handleCreateFormSubmit({
+      title: title.trim(),
+      description: description.trim(),
+    });
+    try {
+      const { id } = await createFormWithTitleAndDescriptionAsync({ title, description });
+      setOpen(false);
+      setTitle("");
+      setDescription("");
+    } catch (error) {
+      console.error("Failed to create form:", error);
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Forms</p>
             <h1 className="text-3xl font-semibold tracking-tight">
@@ -33,99 +61,59 @@ export default function Page() {
             <Button variant="outline" asChild>
               <Link href="/dashboard">Back to dashboard</Link>
             </Button>
-            <Button>Save form</Button>
-          </div>
-        </div>
-      </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-foreground text-white hover:bg-[#14b84d]/90">
+                  Create New Form
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg bg-[#111214] border-[#626262] text-foreground">
+                <DialogHeader>
+                  <DialogTitle className="text-[20px] font-black uppercase tracking-[0.08em]">
+                    Create New Form
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground text-[12px] uppercase tracking-[0.12em]">
+                    Add a title and description before handing off to your form handler.
+                  </DialogDescription>
+                </DialogHeader>
 
-      <div className="grid gap-4 px-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)] lg:px-6">
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader>
-            <CardTitle>New intake form</CardTitle>
-            <CardDescription>
-              Capture the fields your team needs before sending work into the dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-6">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="form-name">Form name</FieldLabel>
-                  <Input id="form-name" placeholder="Customer onboarding" />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="form-owner">Owner</FieldLabel>
-                  <Input id="form-owner" placeholder="Operations team" />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="form-type">Submission type</FieldLabel>
-                  <Select defaultValue="request">
-                    <SelectTrigger id="form-type">
-                      <SelectValue placeholder="Choose a type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="request">Request</SelectItem>
-                      <SelectItem value="approval">Approval</SelectItem>
-                      <SelectItem value="incident">Incident</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FieldDescription>
-                    Use this to route submissions into the correct workflow.
-                  </FieldDescription>
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="form-description">Description</FieldLabel>
-                  <Textarea
-                    id="form-description"
-                    placeholder="Describe what this form collects and who reviews it."
-                    className="min-h-28"
-                  />
-                </Field>
-
-                <Field className="items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-1">
-                    <FieldLabel htmlFor="form-publish">Publish immediately</FieldLabel>
-                    <FieldDescription>
-                      Make the form available to the team as soon as it is saved.
-                    </FieldDescription>
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <div className="space-y-2">
+                    <label className="text-[12px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                      Title
+                    </label>
+                    <Input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="Enter form title"
+                      className="h-11 bg-[#0b0d0e] border-[#626262] text-foreground placeholder:text-muted-foreground uppercase tracking-[0.08em]"
+                    />
                   </div>
-                  <Switch id="form-publish" />
-                </Field>
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
 
-        <div className="grid gap-4">
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader>
-              <CardTitle>Publishing checklist</CardTitle>
-              <CardDescription>Keep the form focused before rolling it out.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>• Verify each field maps to a real workflow step.</p>
-              <p>• Keep labels short so the form reads well on mobile.</p>
-              <p>• Use the dashboard route to monitor completed submissions.</p>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <label className="text-[12px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                      Description
+                    </label>
+                    <Textarea
+                      value={description}
+                      onChange={(event) => setDescription(event.target.value)}
+                      placeholder="Enter form description"
+                      className="min-h-28 bg-[#0b0d0e] border-[#626262] text-foreground placeholder:text-muted-foreground uppercase tracking-[0.08em]"
+                    />
+                  </div>
 
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader>
-              <CardTitle>Shortcuts</CardTitle>
-              <CardDescription>Navigate back into the shared dashboard shell.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Button variant="outline" asChild>
-                <Link href="/dashboard">Open dashboard</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/signup">Create an account</Link>
-              </Button>
-            </CardContent>
-          </Card>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="bg-[#14b84d] text-white hover:bg-[#14b84d]/90">
+                      Create Form
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
     </div>

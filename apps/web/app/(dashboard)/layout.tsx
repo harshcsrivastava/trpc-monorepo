@@ -1,24 +1,26 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { AppSidebar } from "~/components/app-sidebar";
-import { SiteHeader } from "~/components/site-header";
-import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
+import { DashboardAuthGuard } from "~/components/dashboard-auth-guard";
+import { DashboardSidebar } from "~/components/dashboard-sidebar";
+import { DashboardHeader } from "~/components/dashboard-header";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    <DashboardAuthGuard>
+      <div className="min-h-screen flex bg-[#0b0c0d] text-foreground">
+        <DashboardSidebar />
+        <div className="flex-1">
+          <div className="sticky top-0 z-10 bg-[#0b0c0d] border-b border-border">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <DashboardHeader />
+            </div>
+          </div>
+
+          <main className="py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
+          </main>
+        </div>
+      </div>
+    </DashboardAuthGuard>
   );
 }

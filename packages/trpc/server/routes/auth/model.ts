@@ -2,9 +2,9 @@ import { email, xid, z } from "zod";
 
 //Procedure ke model - Input and Output
 export const createUserWithEmailAndPasswordInputModel = z.object({
-  fullName: z.string().describe("FullName of the User"),
-  email: z.email().describe("Email of the User"),
-  password: z.string().describe("Password of the user"),
+  fullName: z.string().describe("FullName of the User").min(2, "Must be atleast 2 characters"),
+  email: z.email().describe("Email of the User").min(2, "Must be atleast 2 characters"),
+  password: z.string().describe("Password of the user").min(6, "Must be atleast 6 characters"),
 });
 
 export const createUserWithEmailAndPasswordOutputModel = z.object({
@@ -12,8 +12,8 @@ export const createUserWithEmailAndPasswordOutputModel = z.object({
 });
 
 export const signInUserWithEmailAndPasswordInputModel = z.object({
-  email: z.email().describe("Email of the User"),
-  password: z.string().describe("Password of the user"),
+  email: z.email().describe("Email of the User").min(2, "Must be atleast 2 characters"),
+  password: z.string().describe("Password of the user").min(5, "Must be atleast 5 characters"),
 });
 
 export const signInUserWithEmailAndPasswordOutputModel = z.object({

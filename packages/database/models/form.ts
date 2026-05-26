@@ -12,7 +12,7 @@ import { usersTable } from "./user";
 import { relations } from "drizzle-orm";
 import { responsesTable } from "./response";
 
-export type VisibilityType = "public" | "unlisted";
+export type VisibilityType = "public" | "unlisted" | "draft";
 
 export interface FormFieldsType {
   id: string;
@@ -49,11 +49,11 @@ export interface ConditionalLogicRule {
 
 export const formsTable = pgTable("forms", {
   id: uuid("id").primaryKey().defaultRandom(),
-  creatorId: uuid("created_by").references(() => usersTable.id),
+  creatorId: uuid("creator_id").references(() => usersTable.id),
 
   title: varchar("title", { length: 100 }).notNull(),
   description: varchar("description", { length: 300 }),
-  slug: varchar("tile", { length: 100 }).notNull(),
+  slug: varchar("slug", { length: 100 }).notNull(),
 
   // Settings
   isPublished: boolean("is_published").default(false).notNull(),
@@ -62,7 +62,7 @@ export const formsTable = pgTable("forms", {
 
   // Dynamic Elements
   fields: jsonb("fields").$type<FormFieldsType[]>().notNull().default([]),
-  logic: jsonb("logic"),
+  logic: jsonb("logic").$type<ConditionalLogicRule[]>().default([]),
 
   // Additional Feature
   accessKey: varchar("access_key"),

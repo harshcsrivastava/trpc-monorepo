@@ -22,7 +22,7 @@ export const authRouter = router({
     .meta({
       openapi: {
         method: "POST", // agar kisiko RequestKit sse karna hai to vo POST call kare, usually Procedure call hongi
-        path: getPath("/createUsserWithEmailAndPassword"),
+        path: getPath("/createUserWithEmailAndPassword"),
         tags: TAGS,
       },
     })
@@ -30,6 +30,7 @@ export const authRouter = router({
     .output(createUserWithEmailAndPasswordOutputModel)
     .mutation(async ({ input, ctx }) => {
       const { fullName, email, password } = input;
+      if (!fullName || fullName.trim().length === 0) throw new Error();
       const { id, token } = await userService.createUserWithEmailAndPassword({
         fullName,
         email,
@@ -75,10 +76,10 @@ export const authRouter = router({
     .input(getLoggedInUserInfoInputModel)
     .output(getLoggedInUserInfoOutputModel)
     .query(async ({ ctx }) => {
-
-      const { id, email, fullName, profileImageUrl } =
-        await userService.getUserInfoById(ctx.user.id);
-
+      const { id, email, fullName, profileImageUrl } = await userService.getUserInfoById(
+        ctx.user.id,
+      );
+      const token = getAuthenticationCookie(ctx);
       // WHY destructure extensively? Due to Prototype and some built in function which may cause overlap in future.
       //  and we are pass by copy not pass by reference
       return {
@@ -86,6 +87,7 @@ export const authRouter = router({
         email,
         fullName,
         profileImageUrl,
+        token,
       };
     }),
 });

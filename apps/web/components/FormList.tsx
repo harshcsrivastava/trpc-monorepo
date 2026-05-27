@@ -1,38 +1,6 @@
 import React from "react";
 import Image from "next/image";
-/**
- * {
-  forms: [
-    {
-      formId: "a1b2c3d4-e5f6-7890-abcd-1234567890ef",
-      creatorName: "Harsh Srivastava",
-      formTitle: "Minecraft Server Feedback",
-      formDescription: "Help us improve your server experience",
-      responseCount: 342,
-      visibility: "public",
-      updatedAt: "2025-05-20T10:15:00.000Z",
-      count: 12
-    },
-    {
-      formId: "b2c3d4e5-f6a7-8901-bcde-2345678901fg",
-      creatorName: "Harsh Srivastava",
-      formTitle: "Event Registration Form",
-      formDescription: "Register for our upcoming Minecraft event",
-      responseCount: 156,
-      visibility: "unlisted",
-      updatedAt: "2025-05-18T09:00:00.000Z",
-      count: 12
-    }
-    // ...more rows
-  ],
-  metaData: {
-    start: 1,
-    end: 5,
-    totalCount: 12
-  }
-}
-
- */
+import { useRouter } from "next/navigation";
 
 type Forms = {
   formId: string;
@@ -51,12 +19,23 @@ type FormListProps = {
 };
 
 const FormList = ({ forms }: FormListProps) => {
+  const router = useRouter();
+  const handleEdit = (id: string) => {
+    router.replace(`/forms/${id}`);
+  };
   return (
     <>
       {forms.map((form, index) => {
         const imgIndex = (index % 10) + 1; // cycles 1..10
         const imgSrc = `/dashboard/bg/image-${imgIndex}.png`;
         const updated = form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "-";
+        const visibilityLabel = String(form.visibility).toLowerCase();
+        const visibilityClass =
+          visibilityLabel === "public"
+            ? "bg-green-700 text-white"
+            : visibilityLabel === "unlisted"
+              ? "bg-yellow-300 text-black"
+              : "bg-gray-400 text-black";
 
         return (
           <div
@@ -83,8 +62,10 @@ const FormList = ({ forms }: FormListProps) => {
 
             {/* VISIBILITY */}
             <div className="col-span-3 m-auto">
-              <span className="px-3 py-1 rounded-full bg-[#0f8b2f] text-white text-[11px] font-black tracking-[0.08em] uppercase">
-                {form.visibility}
+              <span
+                className={`px-3 py-1 rounded-full text-[11px] font-black tracking-[0.08em] uppercase ${visibilityClass}`}
+              >
+                {visibilityLabel}
               </span>
             </div>
 
@@ -93,7 +74,7 @@ const FormList = ({ forms }: FormListProps) => {
 
             {/* ACTIONS */}
             <div className="col-span-3 text-right m-auto">
-              <button className="h-10 px-4 rounded-lg border border-[#626262] bg-[#0b0d0e] text-[13px] font-black tracking-[0.08em] uppercase">
+              <button onClick={() => handleEdit(form.formId)} className="h-10 px-4 rounded-lg border border-[#626262] bg-[#0b0d0e] text-[13px] font-black tracking-[0.08em] uppercase">
                 Edit
               </button>
             </div>

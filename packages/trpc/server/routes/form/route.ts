@@ -1,11 +1,27 @@
 import { formService } from "../../services";
-import { authenticatedProcedure, router } from "../../trpc";
+import { authenticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import {
+  createFormFieldsInputModel,
+  createFormFieldsOutputModel,
   createFormWithTitleAndDescriptionInputModel,
   createFormWithTitleAndDescriptionOutputModel,
+  getFormByIdInputModel,
+  getFormByIdOutputModel,
+  getPublicFormByIdInputModel,
+  getPublicFormByIdOutputModel,
   getFormsDataByUserIdInputModel,
   getFormsDataByUserIdOutputModel,
+  publishFormInputModel,
+  publishFormOutputModel,
+  setFormAccessKeyInputModel,
+  setFormAccessKeyOutputModel,
+  updateFormMetadataInputModel,
+  updateFormMetadataOutputModel,
+  updateFormSettingsInputModel,
+  updateFormSettingsOutputModel,
+  updateFormFieldsInputModel,
+  updateFormFieldsOutputModel,
 } from "./model";
 
 const TAGS = ["Forms"];
@@ -15,7 +31,7 @@ export const formRouter = router({
   createFormWithTitleAndDescription: authenticatedProcedure
     .meta({
       openapi: {
-        method: "POST", // agar kisiko RequestKit sse karna hai to vo POST call kare, usually Procedure call hongi
+        method: "POST",
         path: getPath("/createFormWithTitleAndDescription"),
         tags: TAGS,
       },
@@ -23,18 +39,17 @@ export const formRouter = router({
     .input(createFormWithTitleAndDescriptionInputModel)
     .output(createFormWithTitleAndDescriptionOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const { title, description } = input;
       const creatorId = ctx.user.id;
+      const { title, description } = input;
       const { id } = await formService.createFormWithTitleAndDescription({
         creatorId,
         title,
         description,
       });
 
-      return {
-        id,
-      };
+      return { id };
     }),
+
   getFormsDataByUserId: authenticatedProcedure
     .meta({
       openapi: {
@@ -59,5 +74,165 @@ export const formRouter = router({
         forms,
         metaData,
       };
+    }),
+
+  getFormById: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormById"),
+        tags: TAGS,
+      },
+    })
+    .input(getFormByIdInputModel)
+    .output(getFormByIdOutputModel)
+    .query(async ({ input }) => {
+      return await formService.getFormById({ formId: input.formId });
+    }),
+
+  getPublicFormById: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getPublicFormById"),
+        tags: TAGS,
+      },
+    })
+    .input(getPublicFormByIdInputModel)
+    .output(getPublicFormByIdOutputModel)
+    .query(async ({ input }) => {
+      return await formService.getPublicFormById({
+        formId: input.formId,
+        slugHash: input.slugHash,
+        accessKey: input.accessKey,
+      });
+    }),
+
+  updateFormMetadata: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/updateFormMetadata"),
+        tags: TAGS,
+      },
+    })
+    .input(updateFormMetadataInputModel)
+    .output(updateFormMetadataOutputModel)
+    .mutation(async ({ input }) => {
+      return await formService.updateFormMetadata({
+        formId: input.formId,
+        title: input.title,
+        description: input.description,
+        visibility: input.visibility,
+      });
+    }),
+
+  updateFormSettings: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/updateFormSettings"),
+        tags: TAGS,
+      },
+    })
+    .input(updateFormSettingsInputModel)
+    .output(updateFormSettingsOutputModel)
+    .mutation(async ({ input }) => {
+      return await formService.updateFormSettings({
+        formId: input.formId,
+        title: input.title,
+        description: input.description,
+        visibility: input.visibility,
+        accessKey: input.accessKey,
+        responseCount: input.responseCount,
+        expiresAt: input.expiresAt,
+      });
+    }),
+
+  createFormFields: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/createFormFields"),
+        tags: TAGS,
+      },
+    })
+    .input(createFormFieldsInputModel)
+    .output(createFormFieldsOutputModel)
+    .mutation(async ({ input }) => {
+      const { id, field, logic } = input;
+      const result = await formService.createFormFields({ formId: id, field, logic });
+
+      if (!result || !result.formId || !result.fields) {
+        throw new Error("Failed to create form fields");
+      }
+
+      return {
+        formId: result.formId,
+        fields: result.fields,
+        logic: result.logic,
+      };
+    }),
+
+  updateFormFields: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/updateFormFields"),
+        tags: TAGS,
+      },
+    })
+    .input(updateFormFieldsInputModel)
+    .output(updateFormFieldsOutputModel)
+    .mutation(async ({ input }) => {
+      const { formId, fields, logic } = input;
+      const result = await formService.updateFormFields({ formId, fields, logic });
+
+      if (!result || !result.formId || !result.fields) {
+        throw new Error("Failed to update form fields");
+      }
+
+      return {
+        formId: result.formId,
+        fields: result.fields,
+        logic: result.logic,
+      };
+    }),
+
+  setFormAccessKey: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/setFormAccessKey"),
+        tags: TAGS,
+      },
+    })
+    .input(setFormAccessKeyInputModel)
+    .output(setFormAccessKeyOutputModel)
+    .mutation(async ({ input }) => {
+      return await formService.setFormAccessKey({
+        formId: input.formId,
+        accessKey: input.accessKey,
+      });
+    }),
+
+  publishForm: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/publishForm"),
+        tags: TAGS,
+      },
+    })
+    .input(publishFormInputModel)
+    .output(publishFormOutputModel)
+    .mutation(async ({ input }) => {
+      return await formService.publishForm({
+        formId: input.formId,
+        title: input.title,
+        description: input.description,
+        fields: input.fields,
+        logic: input.logic,
+      });
     }),
 });

@@ -1,4 +1,4 @@
-import { xid, z } from "zod";
+import { z } from "zod";
 
 export const createFormWithTitleAndDescriptionInput = z.object({
   creatorId: z.string().describe("Id of the user"),
@@ -17,3 +17,119 @@ export const getFormsDataByUserIdInput = z.object({
 });
 
 export type GetFormsDataByUserIdType = z.infer<typeof getFormsDataByUserIdInput>;
+
+export const getFormByIdInput = z.object({
+  formId: z.string().describe("Id of the form"),
+});
+
+export type GetFormByIdType = z.infer<typeof getFormByIdInput>;
+
+export const getPublicFormByIdInput = z.object({
+  formId: z.string().describe("Id of the form"),
+  slug: z.string().describe("slug of the form"),
+  accessKey: z.string().optional().describe("Access key for unlisted forms"),
+});
+
+export type GetPublicFormByIdType = z.infer<typeof getPublicFormByIdInput>;
+
+export const setFormAccessKeyInput = z.object({
+  formId: z.string().describe("Id of the form"),
+  accessKey: z.string().optional().describe("Access key to store for the form"),
+});
+
+export type SetFormAccessKeyType = z.infer<typeof setFormAccessKeyInput>;
+
+export const updateFormMetadataInput = z.object({
+  formId: z.string().describe("Id of the form"),
+  title: z.string().describe("title of the form"),
+  description: z.string().describe("description of the form").optional(),
+  visibility: z.enum(["public", "unlisted", "draft"]).optional().describe("visibility of the form"),
+});
+
+export type UpdateFormMetadataType = z.infer<typeof updateFormMetadataInput>;
+
+export const updateFormSettingsInput = z.object({
+  formId: z.string().describe("Id of the form"),
+  title: z.string().describe("title of the form"),
+  description: z.string().optional().describe("description of the form"),
+  visibility: z.enum(["public", "unlisted", "draft"]).describe("visibility of the form"),
+  accessKey: z.string().optional().describe("access key for the form"),
+  responseCount: z.number().int().min(0).optional().describe("response count for the form"),
+  expiresAt: z.union([z.string(), z.date()]).nullable().optional().describe("expiry timestamp"),
+});
+
+export type UpdateFormSettingsType = z.infer<typeof updateFormSettingsInput>;
+
+export const updateFormSettingsOutputModel = z.object({
+  id: z.string().describe("Id of the form"),
+  title: z.string().describe("title of the form"),
+  description: z.string().nullable().describe("description of the form"),
+  slug: z.string().describe("slug of the form"),
+  visibility: z.enum(["public", "unlisted", "draft"]).describe("visibility of the form"),
+  redirectUrl: z.string().nullable().describe("Redirect URL for the form"),
+  responseCount: z.number().nullable().optional().describe("response count for the form"),
+  expiresAt: z.union([z.string(), z.date()]).nullable().optional().describe("expiry timestamp"),
+  updatedAt: z.union([z.string(), z.date()]).describe("Last updated timestamp"),
+});
+
+const fieldTypeSchema = z.enum([
+  "short_text",
+  "long_text",
+  "email",
+  "number",
+  "select",
+  "multi_select",
+  "rating",
+  "date",
+]);
+export const field = z.object({
+  type: fieldTypeSchema.describe("Type of field"),
+  label: z.string().describe("label of field"),
+  placeholder: z.string().describe("placeholder of field").optional(),
+  description: z.string().describe("Description of field").optional(),
+  isRequired: z.boolean().default(false).describe("required field or not"),
+  options: z.array(z.string()).optional(),
+  validations: z
+    .object({
+      min: z.number().optional(),
+      max: z.number().optional(),
+      regex: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const conditionalLogicRule = z.object({
+  fieldId: z.string().describe("The ID of the field that will change state"),
+  dependsOnFieldId: z.string().describe("The ID of the field being watched"),
+  operator: z
+    .enum(["equals", "not_equals", "contains", "greater_than", "less_than"])
+    .describe("Operator to compare with"),
+  value: z.any().describe("Value to compare against"),
+  action: z.enum(["show", "hide"]).describe("Action to apply when rule matches"),
+});
+
+export const createFormFieldsInput = z.object({
+  formId: z.string().describe("Form Id of User"),
+  field: field.describe("field to add"),
+  logic: z.array(conditionalLogicRule).optional().describe("optional conditional logic rules to save with the field"),
+});
+
+export type CreateFormFieldsType = z.infer<typeof createFormFieldsInput>;
+
+export const updateFormFieldsInput = z.object({
+  formId: z.string().describe("Form Id of User"),
+  fields: z.array(field).describe("fields to add"),
+  logic: z.array(conditionalLogicRule).optional().describe("optional conditional logic rules"),
+});
+
+export type UpdateFormFieldsType = z.infer<typeof updateFormFieldsInput>;
+
+export const publishFormInput = z.object({
+  formId: z.string().describe("Form Id of User"),
+  title: z.string().describe("title of the form"),
+  description: z.string().describe("description of the form").optional(),
+  fields: z.array(field).describe("fields to save"),
+  logic: z.array(conditionalLogicRule).optional().describe("optional conditional logic rules"),
+});
+
+export type PublishFormType = z.infer<typeof publishFormInput>;

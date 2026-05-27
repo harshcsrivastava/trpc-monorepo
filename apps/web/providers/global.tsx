@@ -1,14 +1,25 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import React, { useState } from "react";
 import { Toaster } from "~/components/ui/sonner";
+import { showGlobalErrorToast } from "~/lib/global-error-toast";
 
 import { trpc } from "~/trpc/client";
 import { createTRPCHttpBatchClientClient } from "~/trpc/create-client";
 
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      showGlobalErrorToast(error);
+    },
+  }),
+  queryCache: new QueryCache({
+    onError: (error) => {
+      showGlobalErrorToast(error);
+    },
+  }),
   defaultOptions: {
     queries: {
       refetchOnMount: true,

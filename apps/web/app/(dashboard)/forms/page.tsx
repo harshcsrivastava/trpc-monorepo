@@ -66,8 +66,8 @@ export default function Page() {
                   Create and manage form templates
                 </h1>
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  A shared dashboard layout keeps this route aligned with the rest of the admin shell
-                  while giving you a dedicated surface for structured input.
+                  A shared dashboard layout keeps this route aligned with the rest of the admin
+                  shell while giving you a dedicated surface for structured input.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -119,7 +119,10 @@ export default function Page() {
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                           Cancel
                         </Button>
-                        <Button type="submit" className="bg-[#14b84d] text-white hover:bg-[#14b84d]/90">
+                        <Button
+                          type="submit"
+                          className="bg-[#14b84d] text-white hover:bg-[#14b84d]/90"
+                        >
                           Create Form
                         </Button>
                       </DialogFooter>

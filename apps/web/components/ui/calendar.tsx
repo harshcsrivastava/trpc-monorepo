@@ -11,7 +11,7 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = "label",
+  captionLayout = "dropdown-buttons",
   buttonVariant = "ghost",
   formatters,
   components,
@@ -31,8 +31,11 @@ function Calendar({
         className,
       )}
       captionLayout={captionLayout}
+      fromYear={1990}
+      toYear={2035}
       formatters={{
         formatMonthDropdown: (date) => date.toLocaleString("default", { month: "short" }),
+        formatYearDropdown: (date) => date.getFullYear().toString(),
         ...formatters,
       }}
       classNames={{
@@ -58,14 +61,11 @@ function Calendar({
           defaultClassNames.month_caption,
         ),
         dropdowns: cn(
-          "w-full flex items-center text-sm font-medium justify-center h-(--cell-size) gap-1.5",
+          "w-full flex items-center text-[#14B84D] text-sm font-medium justify-center h-(--cell-size) gap-1.5",
           defaultClassNames.dropdowns,
         ),
-        dropdown_root: cn(
-          "relative has-focus:border-ring border border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] rounded-md",
-          defaultClassNames.dropdown_root,
-        ),
-        dropdown: cn("absolute bg-popover inset-0 opacity-0", defaultClassNames.dropdown),
+        dropdown_root: cn("relative rounded-md", defaultClassNames.dropdown_root),
+        dropdown: cn("absolute inset-0 opacity-0 cursor-pointer", defaultClassNames.dropdown),
         caption_label: cn(
           "select-none font-medium",
           captionLayout === "label"
@@ -76,7 +76,7 @@ function Calendar({
         table: "w-full border-collapse",
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
-          "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none",
+          "text-yellow-500 rounded-md flex-1 font-normal text-[0.8rem] select-none",
           defaultClassNames.weekday,
         ),
         week: cn("flex w-full mt-2", defaultClassNames.week),

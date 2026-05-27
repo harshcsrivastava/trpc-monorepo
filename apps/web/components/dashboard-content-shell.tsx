@@ -17,9 +17,7 @@ export function DashboardContentShell({ children }: { children: ReactNode }) {
         />
       ) : null}
 
-      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {children}
-      </div>
+      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
     </main>
   );
 }

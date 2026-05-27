@@ -8,6 +8,8 @@ import {
   createFormWithTitleAndDescriptionOutputModel,
   getFormByIdInputModel,
   getFormByIdOutputModel,
+  getFormResponsesInputModel,
+  getFormResponsesOutputModel,
   getPublicFormByIdInputModel,
   getPublicFormByIdOutputModel,
   getFormsDataByUserIdInputModel,
@@ -16,6 +18,8 @@ import {
   publishFormOutputModel,
   setFormAccessKeyInputModel,
   setFormAccessKeyOutputModel,
+  submitFormResponseInputModel,
+  submitFormResponseOutputModel,
   updateFormMetadataInputModel,
   updateFormMetadataOutputModel,
   updateFormSettingsInputModel,
@@ -103,7 +107,7 @@ export const formRouter = router({
     .query(async ({ input }) => {
       return await formService.getPublicFormById({
         formId: input.formId,
-        slugHash: input.slugHash,
+        slug: input.slug,
         accessKey: input.accessKey,
       });
     }),
@@ -119,12 +123,21 @@ export const formRouter = router({
     .input(updateFormMetadataInputModel)
     .output(updateFormMetadataOutputModel)
     .mutation(async ({ input }) => {
-      return await formService.updateFormMetadata({
-        formId: input.formId,
-        title: input.title,
-        description: input.description,
-        visibility: input.visibility,
-      });
+      const { id, title, description, visibility, slug, updatedAt } =
+        await formService.updateFormMetadata({
+          formId: input.formId,
+          title: input.title,
+          description: input.description,
+          visibility: input.visibility,
+        });
+      return {
+        id,
+        title,
+        description,
+        visibility,
+        slug,
+        updatedAt: updatedAt ?? new Date(),
+      };
     }),
 
   updateFormSettings: authenticatedProcedure
@@ -210,10 +223,19 @@ export const formRouter = router({
     .input(setFormAccessKeyInputModel)
     .output(setFormAccessKeyOutputModel)
     .mutation(async ({ input }) => {
-      return await formService.setFormAccessKey({
-        formId: input.formId,
-        accessKey: input.accessKey,
-      });
+      const { id, visibility, accessKey, redirectUrl, updatedAt } =
+        await formService.setFormAccessKey({
+          formId: input.formId,
+          accessKey: input.accessKey,
+        });
+
+      return {
+        id,
+        visibility,
+        accessKey,
+        redirectUrl,
+        updatedAt: updatedAt ?? new Date(),
+      };
     }),
 
   publishForm: authenticatedProcedure
@@ -233,6 +255,46 @@ export const formRouter = router({
         description: input.description,
         fields: input.fields,
         logic: input.logic,
+      });
+    }),
+
+  submitFormResponse: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/submitFormResponse"),
+        tags: TAGS,
+      },
+    })
+    .input(submitFormResponseInputModel)
+    .output(submitFormResponseOutputModel)
+    .mutation(async ({ input }) => {
+      return await formService.submitFormResponse({
+        formId: input.formId,
+        slug: input.slug,
+        accessKey: input.accessKey,
+        answers: input.answers,
+        browser: input.browser,
+        os: input.os,
+        country: input.country,
+        durationSeconds: input.durationSeconds,
+      });
+    }),
+
+  getFormResponses: authenticatedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormResponses"),
+        tags: TAGS,
+      },
+    })
+    .input(getFormResponsesInputModel)
+    .output(getFormResponsesOutputModel)
+    .query(async ({ input, ctx }) => {
+      return await formService.getFormResponses({
+        formId: input.formId,
+        creatorId: ctx.user.id,
       });
     }),
 });

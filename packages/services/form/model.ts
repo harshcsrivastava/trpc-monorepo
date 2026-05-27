@@ -111,7 +111,10 @@ export const conditionalLogicRule = z.object({
 export const createFormFieldsInput = z.object({
   formId: z.string().describe("Form Id of User"),
   field: field.describe("field to add"),
-  logic: z.array(conditionalLogicRule).optional().describe("optional conditional logic rules to save with the field"),
+  logic: z
+    .array(conditionalLogicRule)
+    .optional()
+    .describe("optional conditional logic rules to save with the field"),
 });
 
 export type CreateFormFieldsType = z.infer<typeof createFormFieldsInput>;
@@ -133,3 +136,48 @@ export const publishFormInput = z.object({
 });
 
 export type PublishFormType = z.infer<typeof publishFormInput>;
+
+export const responseData = z.object({
+  id: z.string().describe("Id of the response"),
+  answers: z.record(z.string(), z.any()).describe("Submitted answers keyed by field id"),
+  browser: z.string().nullable().optional().describe("Browser metadata"),
+  os: z.string().nullable().optional().describe("OS metadata"),
+  country: z.string().nullable().optional().describe("Country metadata"),
+  durationSeconds: z.number().nullable().optional().describe("Duration spent on the form"),
+  submittedAt: z.union([z.string(), z.date()]).describe("Submitted timestamp"),
+});
+
+export const submitFormResponseInput = z.object({
+  formId: z.string().describe("Id of the form"),
+  slug: z.string().describe("slug of the form"),
+  accessKey: z.string().optional().describe("Access key for unlisted forms"),
+  answers: z.record(z.string(), z.any()).describe("Submitted answers keyed by field id"),
+  browser: z.string().optional().describe("Browser metadata"),
+  os: z.string().optional().describe("OS metadata"),
+  country: z.string().optional().describe("Country metadata"),
+  durationSeconds: z.number().int().min(0).optional().describe("Duration spent on the form"),
+});
+
+export type SubmitFormResponseType = z.infer<typeof submitFormResponseInput>;
+
+export const submitFormResponseOutput = z.object({
+  id: z.string().describe("Id of the saved response"),
+  formId: z.string().describe("Id of the form"),
+  responseCount: z.number().describe("Updated response count"),
+  submittedAt: z.union([z.string(), z.date()]).describe("Submitted timestamp"),
+});
+
+export const getFormResponsesInput = z.object({
+  formId: z.string().describe("Id of the form"),
+});
+
+export type GetFormResponsesType = z.infer<typeof getFormResponsesInput>;
+
+export const getFormResponsesOutput = z.object({
+  formId: z.string().describe("Id of the form"),
+  title: z.string().describe("title of the form"),
+  slug: z.string().describe("slug of the form"),
+  fields: z.array(field).describe("fields on the form"),
+  responseCount: z.number().describe("Total responses stored for the form"),
+  responses: z.array(responseData).describe("Saved responses for the form"),
+});

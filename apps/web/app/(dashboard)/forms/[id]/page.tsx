@@ -12,11 +12,21 @@ import {
 } from "~/components/ui/accordion";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { Badge } from "~/components/ui/badge";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
 import {
   useCreateFormFields,
   useGetFormById,
+  useGetFormResponses,
   usePublishForm,
   useUpdateFormFields,
   useUpdateFormMetadata,
@@ -70,7 +80,7 @@ type SettingsState = {
 export default function Page() {
   const params = useParams<{ id: string }>();
   const formId = params?.id;
-  const [tab, setTab] = useState<"builder" | "settings" | "share">("builder");
+  const [tab, setTab] = useState<"builder" | "settings" | "responses" | "share">("builder");
   const [logic, setLogic] = useState<BackendLogicRule[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [formTitle, setFormTitle] = useState("Untitled Form");
@@ -90,11 +100,21 @@ export default function Page() {
   const { updateFormSettingsAsync } = useUpdateFormSettings();
   const { publishFormAsync } = usePublishForm();
   const { formById } = useGetFormById({ formId });
+  const { formResponsesById, isLoading: isResponsesLoading } = useGetFormResponses(
+  { formId },
+  { refetchInterval: 5000 } // refetch every 5s
+);
+
 
   const [fields, setFields] = useState<Field[]>([]);
 
   const monoStyle = { fontFamily: "var(--font-geist-mono)" };
-  const tabs: Array<"builder" | "settings" | "share"> = ["builder", "settings", "share"];
+  const tabs: Array<"builder" | "settings" | "responses" | "share"> = [
+    "builder",
+    "settings",
+    "responses",
+    "share",
+  ];
   const selectedField = fields.find((field) => field.id === selectedFieldId) ?? null;
   const darkControlClass = "border-[#343434] bg-[#111111] text-white placeholder:text-gray-500";
   const darkMenuControlClass =
@@ -103,8 +123,44 @@ export default function Page() {
 
   const generateAccessKey = () => String(Math.floor(100000 + Math.random() * 900000));
 
-  const permanentShareUrl =
-    formById && formVisibility !== "draft" ? formById.redirectUrl : "";
+  const permanentShareUrl = formById && formVisibility !== "draft" ? formById.redirectUrl : "";
+
+  const responseFields = (formResponsesById?.fields ?? formById?.fields ?? []) as Field[];
+  const responseRows = formResponsesById?.responses ?? [];
+
+  const formatResponseValue = (value: unknown, fieldType?: string) => {
+    if (value === null || value === undefined || value === "") return "—";
+
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.map((entry) => String(entry)).join(", ") : "—";
+    }
+
+    if (fieldType === "date" && typeof value === "string") {
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      }
+    }
+
+    return String(value);
+  };
+
+  const formatSubmittedAt = (value: string | Date) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
 
   const toDatetimeLocalValue = (value?: Date | string | null) => {
     if (!value) return "";
@@ -156,7 +212,9 @@ export default function Page() {
     setFormTitle(formById.title ?? "Untitled Form");
     setFormDescription(formById.description ?? "");
     setFormVisibility(
-      formById.visibility === "public" || formById.visibility === "unlisted" || formById.visibility === "draft"
+      formById.visibility === "public" ||
+        formById.visibility === "unlisted" ||
+        formById.visibility === "draft"
         ? formById.visibility
         : "draft",
     );
@@ -191,7 +249,6 @@ export default function Page() {
     setFields(nextFields);
     setSelectedFieldId(nextFields[0]?.id ?? null);
   }, [formById]);
-
 
   const persistFields = async (nextFields: Field[], nextLogic: BackendLogicRule[] = logic) => {
     if (!formId) return;
@@ -532,7 +589,6 @@ export default function Page() {
               <div className="min-w-0 flex-1 overflow-y-auto p-4 space-y-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex items-end justify-between border-b border-[#232323] pb-3">
                   <div>
-                    
                     <h2
                       className="mt-1 text-lg font-semibold uppercase tracking-[0.16em] text-green-400"
                       style={monoStyle}
@@ -717,10 +773,12 @@ export default function Page() {
                         <span className="text-sm" style={monoStyle}>
                           Required
                         </span>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedField.isRequired}
-                          onChange={(e) => updateSelectedField("isRequired", e.target.checked)}
+                          onCheckedChange={(checked) =>
+                            void updateField(selectedField.id, "isRequired", checked === true)
+                          }
+                          className="size-5 border-[#3a3a3a] bg-[#111111] data-[state=checked]:border-[#14b84d] data-[state=checked]:bg-[#14b84d]"
                         />
                       </div>
 
@@ -956,7 +1014,10 @@ export default function Page() {
 
               <div className="space-y-3 rounded-lg border border-[#2a2a2a] bg-[#0e0e0f] p-4">
                 <div className="space-y-2">
-                  <p className="text-sm uppercase tracking-[0.18em] text-gray-400" style={monoStyle}>
+                  <p
+                    className="text-sm uppercase tracking-[0.18em] text-gray-400"
+                    style={monoStyle}
+                  >
                     Visibility
                   </p>
                   <select
@@ -986,7 +1047,10 @@ export default function Page() {
 
                 {formVisibility === "unlisted" ? (
                   <div className="space-y-2">
-                    <p className="text-sm uppercase tracking-[0.18em] text-gray-400" style={monoStyle}>
+                    <p
+                      className="text-sm uppercase tracking-[0.18em] text-gray-400"
+                      style={monoStyle}
+                    >
                       Access Key
                     </p>
                     <Input
@@ -1004,7 +1068,10 @@ export default function Page() {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <p className="text-sm uppercase tracking-[0.18em] text-gray-400" style={monoStyle}>
+                    <p
+                      className="text-sm uppercase tracking-[0.18em] text-gray-400"
+                      style={monoStyle}
+                    >
                       Response Count
                     </p>
                     <Input
@@ -1018,7 +1085,10 @@ export default function Page() {
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm uppercase tracking-[0.18em] text-gray-400" style={monoStyle}>
+                    <p
+                      className="text-sm uppercase tracking-[0.18em] text-gray-400"
+                      style={monoStyle}
+                    >
                       Expires At
                     </p>
                     <Input
@@ -1034,11 +1104,132 @@ export default function Page() {
             </div>
           )}
 
+          {/* RESPONSES */}
+          {tab === "responses" && (
+            <div className="w-full space-y-4 p-6">
+              <div className="space-y-2">
+                <p
+                  className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
+                  style={monoStyle}
+                >
+                  Responses
+                </p>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-semibold text-white" style={monoStyle}>
+                    User submissions
+                  </h2>
+                  <Badge variant="outline" className="border-[#1f4f2b] bg-[#102116] text-[#59cf77]">
+                    Live
+                  </Badge>
+                </div>
+                <p className="text-sm text-gray-500" style={monoStyle}>
+                  Review saved answers from the public form in a structured table.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-[#2a2a2a] bg-[#0e0e0f] p-4">
+                  <p
+                    className="text-[11px] uppercase tracking-[0.18em] text-gray-500"
+                    style={monoStyle}
+                  >
+                    Total Responses
+                  </p>
+                  <div className="mt-2 text-2xl font-semibold text-white" style={monoStyle}>
+                    {(formResponsesById?.responseCount ?? responseRows.length).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-[#2a2a2a] bg-[#0e0e0f] p-4">
+                  <p
+                    className="text-[11px] uppercase tracking-[0.18em] text-gray-500"
+                    style={monoStyle}
+                  >
+                    Fields
+                  </p>
+                  <div className="mt-2 text-2xl font-semibold text-white" style={monoStyle}>
+                    {responseFields.length.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-[#2a2a2a] bg-[#0e0e0f] p-4">
+                  <p
+                    className="text-[11px] uppercase tracking-[0.18em] text-gray-500"
+                    style={monoStyle}
+                  >
+                    Latest Submission
+                  </p>
+                  <div className="mt-2 text-sm font-medium text-white" style={monoStyle}>
+                    {responseRows[0]
+                      ? formatSubmittedAt(responseRows[0].submittedAt)
+                      : "No responses yet"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[#2a2a2a] bg-[#0e0e0f] p-4">
+                {isResponsesLoading ? (
+                  <div className="py-6 text-sm text-gray-500" style={monoStyle}>
+                    Loading responses...
+                  </div>
+                ) : responseRows.length === 0 ? (
+                  <div className="py-6 text-sm text-gray-500" style={monoStyle}>
+                    No responses have been submitted yet.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-[#242424] hover:bg-transparent">
+                        <TableHead className="text-gray-400" style={monoStyle}>
+                          Submitted At
+                        </TableHead>
+                        {responseFields.map((field, index) => (
+                          <TableHead
+                            key={`${field.id ?? index}-header`}
+                            className="text-gray-400"
+                            style={monoStyle}
+                          >
+                            {field.label?.trim() ? field.label : `Field ${index + 1}`}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {responseRows.map((response) => (
+                        <TableRow key={response.id} className="border-[#242424] hover:bg-[#111111]">
+                          <TableCell className="whitespace-nowrap text-gray-300" style={monoStyle}>
+                            {formatSubmittedAt(response.submittedAt)}
+                          </TableCell>
+                          {responseFields.map((field, index) => {
+                            const fieldId = field.id ?? String(index);
+                            const answer = response.answers?.[fieldId];
+
+                            return (
+                              <TableCell
+                                key={`${response.id}-${fieldId}`}
+                                className="max-w-[16rem] whitespace-normal text-gray-200"
+                              >
+                                {formatResponseValue(answer, field.type)}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* SHARE */}
           {tab === "share" && (
             <div className="p-6 space-y-4 max-w-2xl">
               <div className="space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500" style={monoStyle}>
+                <p
+                  className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
+                  style={monoStyle}
+                >
                   Share
                 </p>
                 <h2 className="text-2xl font-semibold text-white" style={monoStyle}>
@@ -1051,7 +1242,11 @@ export default function Page() {
 
               <div className="flex flex-col gap-3 rounded-2xl border border-[#2a2a2a] bg-[#0e0e0f] p-4 sm:flex-row">
                 <Input
-                  value={permanentShareUrl || publishedRedirectUrl || "Publish the form to generate a redirect URL"}
+                  value={
+                    permanentShareUrl ||
+                    publishedRedirectUrl ||
+                    "Publish the form to generate a redirect URL"
+                  }
                   readOnly
                   className="h-11 border-[#343434] bg-[#111111] text-white placeholder:text-gray-500"
                   style={monoStyle}

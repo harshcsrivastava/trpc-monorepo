@@ -36,6 +36,6 @@ export function showGlobalErrorToast(error: unknown) {
         </button>
       </div>
     ),
-    { duration: 5000 }
+    { duration: 5000 },
   );
 }

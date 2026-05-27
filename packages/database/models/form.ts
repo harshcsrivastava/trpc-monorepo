@@ -54,7 +54,7 @@ export const formsTable = pgTable("forms", {
   title: varchar("title", { length: 100 }).notNull(),
   description: varchar("description", { length: 300 }),
   slug: varchar("slug", { length: 100 }).notNull(),
-  
+
   // Settings
   isPublished: boolean("is_published").default(false).notNull(),
   visibility: varchar("visibility").$type<VisibilityType>().default("draft"),

@@ -1,4 +1,4 @@
-import { db, eq, sql } from "@repo/database";
+import { and, db, eq, sql } from "@repo/database";
 import crypto from "crypto";
 import { env } from "../env";
 import {
@@ -6,17 +6,20 @@ import {
   CreateFormFieldsType,
   createFormWithTitleAndDescriptionInput,
   CreateFormWithTitleAndDescriptionType,
-  field,
   getFormsDataByUserIdInput,
   GetFormsDataByUserIdType,
   getFormByIdInput,
   GetFormByIdType,
+  getFormResponsesInput,
+  GetFormResponsesType,
   getPublicFormByIdInput,
   GetPublicFormByIdType,
   publishFormInput,
   PublishFormType,
   setFormAccessKeyInput,
   SetFormAccessKeyType,
+  submitFormResponseInput,
+  SubmitFormResponseType,
   updateFormMetadataInput,
   UpdateFormMetadataType,
   updateFormSettingsInput,
@@ -24,7 +27,7 @@ import {
   updateFormFieldsInput,
   UpdateFormFieldsType,
 } from "./model";
-import { formsTable, usersTable } from "@repo/database/schema";
+import { formsTable, responsesTable, usersTable } from "@repo/database/schema";
 
 interface FormRow extends Record<string, unknown> {
   formId: string;
@@ -51,6 +54,16 @@ interface FormByIdRow extends Record<string, unknown> {
   expiresAt: Date | string | null;
   updatedAt: Date;
 }
+
+interface ResponseRow extends Record<string, unknown> {
+  id: string;
+  answers: Record<string, unknown>;
+  browser: string | null;
+  os: string | null;
+  country: string | null;
+  durationSeconds: number | null;
+  submittedAt: Date;
+}
 class FormService {
   private readonly mutationCooldownMs = 5000;
   private readonly mutationTimestamps = new Map<string, number>();
@@ -69,12 +82,14 @@ class FormService {
       .replace(/^_|_$/g, "");
   }
 
-  private hashFunction(input: string) {
-    return crypto.createHash("sha256").update(input).digest("hex");
-  }
+  private createRedirectUrl(formId: string, slug: string, visibility?: string, accessKey?: string) {
+    const baseUrl = `${env.HOST_URL.replace(/\/$/, "")}/forms/${formId}/${slug}`;
+    const params = new URLSearchParams();
+    if (visibility === "unlisted" && accessKey) {
+      params.set("accessKey", accessKey);
+    }
 
-  private createRedirectUrl(formId: string, slug: string) {
-    return `${env.HOST_URL.replace(/\/$/, "")}/form/${formId}/${slug}`;
+    return `${baseUrl}${params.toString() ? `?${params.toString()}` : ""}`;
   }
 
   private createRandomId() {
@@ -124,13 +139,15 @@ class FormService {
 
     throw new Error("Invalid position for index calculation");
   }
-
+  private generateAccessKey() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
   public async createFormWithTitleAndDescription(payload: CreateFormWithTitleAndDescriptionType) {
     const { title, description, creatorId } =
       await createFormWithTitleAndDescriptionInput.parseAsync(payload);
 
     const slug = this.createSlugFromInput(title);
-
+    const accessKey = this.generateAccessKey();
     const formTableResult = await db
       .insert(formsTable)
       .values({
@@ -138,6 +155,7 @@ class FormService {
         title,
         description,
         slug,
+        accessKey,
       })
       .returning({
         id: formsTable.id,
@@ -231,19 +249,24 @@ class FormService {
 
     const row = result.rows[0];
     const resolvedSlug = row.slug ?? this.createSlugFromInput(String(row.title ?? ""));
-
     return {
       id: String(row.id),
       title: row.title ?? "Untitled Form",
       description: row.description === null ? null : String(row.description),
       slug: resolvedSlug,
-      redirectUrl: this.createRedirectUrl(String(row.id), resolvedSlug),
+      redirectUrl: this.createRedirectUrl(
+        String(row.id),
+        resolvedSlug,
+        row.visibility,
+        row.accessKey ?? undefined,
+      ),
       fields: Array.isArray(row.fields) ? row.fields : [],
       logic: Array.isArray(row.logic) ? row.logic : [],
       visibility: this.normalizeVisibility(row.visibility),
       accessKey: row.accessKey ?? null,
       responseCount: typeof row.responseCount === "number" ? row.responseCount : null,
-      expiresAt: row.expiresAt instanceof Date || typeof row.expiresAt === "string" ? row.expiresAt : null,
+      expiresAt:
+        row.expiresAt instanceof Date || typeof row.expiresAt === "string" ? row.expiresAt : null,
       updatedAt: row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
     };
   }
@@ -302,16 +325,23 @@ class FormService {
       logic: Array.isArray(row.logic) ? row.logic : [],
       visibility: normalizedVisibility,
       requiresAccessKey: normalizedVisibility === "unlisted",
-      redirectUrl: this.createRedirectUrl(String(row.id), resolvedSlug),
+      redirectUrl: this.createRedirectUrl(
+        String(row.id),
+        resolvedSlug,
+        row.visibility,
+        row.accessKey ?? undefined,
+      ),
       accessKey: row.accessKey ?? null,
       responseCount: typeof row.responseCount === "number" ? row.responseCount : null,
-      expiresAt: row.expiresAt instanceof Date || typeof row.expiresAt === "string" ? row.expiresAt : null,
+      expiresAt:
+        row.expiresAt instanceof Date || typeof row.expiresAt === "string" ? row.expiresAt : null,
       updatedAt: row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
     };
   }
 
   public async updateFormMetadata(payload: UpdateFormMetadataType) {
-    const { formId, title, description, visibility } = await updateFormMetadataInput.parseAsync(payload);
+    const { formId, title, description, visibility } =
+      await updateFormMetadataInput.parseAsync(payload);
 
     const slug = this.createSlugFromInput(title);
 
@@ -407,7 +437,7 @@ class FormService {
       expiresAt:
         saved.expiresAt instanceof Date || typeof saved.expiresAt === "string"
           ? saved.expiresAt
-          : resolvedExpiresAt ?? null,
+          : (resolvedExpiresAt ?? null),
       updatedAt: saved.updatedAt,
     };
   }
@@ -461,8 +491,10 @@ class FormService {
       .from(formsTable)
       .where(eq(formsTable.id, formId));
 
-    const existingFields = (existingResult && existingResult[0] && (existingResult[0].fields as any[])) || [];
-    const existingLogic = (existingResult && existingResult[0] && (existingResult[0].logic as any[])) || [];
+    const existingFields =
+      (existingResult && existingResult[0] && (existingResult[0].fields as any[])) || [];
+    const existingLogic =
+      (existingResult && existingResult[0] && (existingResult[0].logic as any[])) || [];
 
     const virtualList: { index: number }[] = existingFields
       .slice()
@@ -474,7 +506,8 @@ class FormService {
     for (let pos = 0; pos < fields.length; pos++) {
       const field = fields[pos] as any;
 
-      const idx = typeof field.index === "number" ? field.index : this.getNextIndex(virtualList, pos);
+      const idx =
+        typeof field.index === "number" ? field.index : this.getNextIndex(virtualList, pos);
 
       virtualList.splice(pos, 0, { index: idx });
 
@@ -492,7 +525,7 @@ class FormService {
       .set({ fields: fieldsWithIndexAndSlug, logic: logicToSave, updatedAt: new Date() })
       .where(eq(formsTable.id, formId))
       .returning({ id: formsTable.id, fields: formsTable.fields, logic: formsTable.logic });
-    
+
     // Return the saved state for client use
     const saved = await db
       .select({ id: formsTable.id, fields: formsTable.fields, logic: formsTable.logic })
@@ -508,6 +541,7 @@ class FormService {
 
   public async setFormAccessKey(payload: SetFormAccessKeyType) {
     const { formId, accessKey } = await setFormAccessKeyInput.parseAsync(payload);
+
     const nextAccessKey = accessKey ?? this.createAccessKey();
 
     const result = await db
@@ -534,28 +568,40 @@ class FormService {
     }
 
     const saved = result[0];
+    const visibility = this.normalizeVisibility(saved.visibility);
+
+    const resolvedAccessKey = saved.accessKey ?? nextAccessKey;
 
     return {
       id: saved.id,
-      visibility: this.normalizeVisibility(saved.visibility),
-      accessKey: saved.accessKey ?? nextAccessKey,
-      redirectUrl: this.createRedirectUrl(saved.id, saved.slug ?? this.createSlugFromInput(saved.title ?? "")),
+      visibility,
+      accessKey: resolvedAccessKey,
+      redirectUrl: this.createRedirectUrl(
+        saved.id,
+        saved.slug ?? this.createSlugFromInput(saved.title ?? ""),
+        visibility,
+        resolvedAccessKey,
+      ),
       updatedAt: saved.updatedAt,
     };
   }
 
   public async publishForm(payload: PublishFormType) {
-    const { formId, title, description, fields, logic } = await publishFormInput.parseAsync(payload);
+    const { formId, title, description, fields, logic } =
+      await publishFormInput.parseAsync(payload);
 
     await this.updateFormMetadata({ formId, title, description });
     await this.updateFormFields({ formId, fields, logic });
 
+    // Fetch current form to check visibility
+    const currentForm = await this.getFormById({ formId });
+
     const result = await db
       .update(formsTable)
       .set({
-        visibility: "public",
+        visibility: currentForm.visibility === "unlisted" ? "unlisted" : "public",
         isPublished: true,
-        accessKey: null,
+        accessKey: currentForm.visibility === "unlisted" ? currentForm.accessKey : null,
         updatedAt: new Date(),
       })
       .where(eq(formsTable.id, formId))
@@ -574,13 +620,126 @@ class FormService {
     }
 
     const saved = result[0];
-
     const publishedForm = await this.getFormById({ formId });
 
     return {
       ...publishedForm,
-      visibility: "public" as const,
-      redirectUrl: this.createRedirectUrl(saved.id, saved.slug ?? publishedForm.slug),
+      visibility: saved.visibility as "public" | "unlisted",
+      redirectUrl: this.createRedirectUrl(
+        saved.id,
+        saved.slug ?? publishedForm.slug,
+        saved.visibility ?? undefined,
+        saved.accessKey ?? "",
+      ),
+    };
+  }
+
+  public async submitFormResponse(payload: SubmitFormResponseType) {
+    const { formId, slug, accessKey, answers, browser, os, country, durationSeconds } =
+      await submitFormResponseInput.parseAsync(payload);
+
+    const form = await this.getPublicFormById({ formId, slug, accessKey });
+    const submittedAt = new Date();
+
+    const result = await db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(responsesTable)
+        .values({
+          formId,
+          answers,
+          browser: browser ?? null,
+          os: os ?? null,
+          country: country ?? null,
+          durationSeconds: durationSeconds ?? null,
+          submittedAt,
+        })
+        .returning({ id: responsesTable.id, submittedAt: responsesTable.submittedAt });
+
+      const updatedForm = await tx
+        .update(formsTable)
+        .set({
+          responseCount: sql`coalesce(${formsTable.responseCount}, 0) + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(formsTable.id, formId))
+        .returning({ responseCount: formsTable.responseCount });
+
+      return {
+        id: inserted[0]?.id,
+        submittedAt: inserted[0]?.submittedAt ?? submittedAt,
+        responseCount: updatedForm[0]?.responseCount,
+      };
+    });
+
+    if (!result.id || typeof result.responseCount !== "number") {
+      throw new Error("Unable to save response");
+    }
+
+    return {
+      id: result.id,
+      formId: form.id,
+      responseCount: result.responseCount,
+      submittedAt: result.submittedAt,
+    };
+  }
+
+  public async getFormResponses(payload: GetFormResponsesType & { creatorId: string }) {
+    const { formId, creatorId } = payload;
+    await getFormResponsesInput.parseAsync({ formId });
+
+    const formResult = await db
+      .select({
+        id: formsTable.id,
+        title: formsTable.title,
+        slug: formsTable.slug,
+        fields: formsTable.fields,
+        responseCount: formsTable.responseCount,
+      })
+      .from(formsTable)
+      .where(and(eq(formsTable.id, formId), eq(formsTable.creatorId, creatorId)))
+      .limit(1);
+
+    if (!formResult[0]) {
+      throw new Error("Form not found");
+    }
+
+    const responseResult = await db.execute<ResponseRow>(sql`
+      SELECT
+        r.id,
+        r.answers,
+        r.browser,
+        r.os,
+        r.country,
+        r.duration_seconds as "durationSeconds",
+        r.submitted_at as "submittedAt"
+      FROM ${responsesTable} r
+      WHERE r.form_id = ${formId}
+      ORDER BY r.submitted_at DESC;
+    `);
+
+    const normalizedResponses = (responseResult.rows ?? []).map((row) => ({
+      id: String(row.id),
+      answers: (row.answers ?? {}) as Record<string, unknown>,
+      browser: row.browser === null ? null : String(row.browser),
+      os: row.os === null ? null : String(row.os),
+      country: row.country === null ? null : String(row.country),
+      durationSeconds:
+        typeof row.durationSeconds === "number"
+          ? row.durationSeconds
+          : row.durationSeconds === null
+            ? null
+            : Number(row.durationSeconds) || null,
+      submittedAt: row.submittedAt instanceof Date ? row.submittedAt : new Date(row.submittedAt),
+    }));
+
+    return {
+      formId: String(formResult[0].id),
+      title: formResult[0].title ?? "Untitled Form",
+      slug: formResult[0].slug ?? this.createSlugFromInput(String(formResult[0].title ?? "")),
+      fields: Array.isArray(formResult[0].fields) ? formResult[0].fields : [],
+      responseCount:
+        typeof formResult[0].responseCount === "number" ? formResult[0].responseCount : 0,
+      responses: normalizedResponses,
     };
   }
 }

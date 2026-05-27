@@ -74,7 +74,10 @@ const FormList = ({ forms }: FormListProps) => {
 
             {/* ACTIONS */}
             <div className="col-span-3 text-right m-auto">
-              <button onClick={() => handleEdit(form.formId)} className="h-10 px-4 rounded-lg border border-[#626262] bg-[#0b0d0e] text-[13px] font-black tracking-[0.08em] uppercase">
+              <button
+                onClick={() => handleEdit(form.formId)}
+                className="h-10 px-4 rounded-lg border border-[#626262] bg-[#0b0d0e] text-[13px] font-black tracking-[0.08em] uppercase"
+              >
                 Edit
               </button>
             </div>

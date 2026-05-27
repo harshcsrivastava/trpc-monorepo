@@ -1,1 +1,0 @@
-export { default } from "../../../forms/[id]/[slug]/page";

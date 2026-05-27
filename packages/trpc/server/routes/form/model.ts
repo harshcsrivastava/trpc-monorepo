@@ -94,7 +94,7 @@ export const setFormAccessKeyOutputModel = z.object({
   id: z.string().describe("Id of the form"),
   visibility: z.enum(["public", "unlisted", "draft"]),
   accessKey: z.string().describe("Stored access key"),
-  redirectUrl: z.string().describe("Public redirect URL for the form"),
+  redirectUrl: z.string().describe("Public redirect URL for the form").nullable(),
   updatedAt: z.union([z.string(), z.date()]).describe("Last updated timestamp"),
 });
 
@@ -111,7 +111,7 @@ export const updateFormMetadataOutputModel = z.object({
   description: z.string().nullable().describe("description of the form"),
   slug: z.string().describe("slug of the form"),
   visibility: z.enum(["public", "unlisted", "draft"]).describe("visibility of the form"),
-  redirectUrl: z.string().nullable().describe("Redirect URL for the form"),
+  // redirectUrl: z.string().nullable().describe("Redirect URL for the form"),
 });
 
 export const updateFormSettingsInputModel = z.object({
@@ -132,8 +132,8 @@ export const updateFormSettingsOutputModel = z.object({
   visibility: z.enum(["public", "unlisted", "draft"]).describe("visibility of the form"),
   accessKey: z.string().nullable().optional().describe("access key for the form"),
   responseCount: z.number().nullable().optional().describe("response count for the form"),
-  expiresAt: z.union([z.string(), z.date()]).nullable().optional().describe("expiry timestamp"),
-  updatedAt: z.union([z.string(), z.date()]).describe("Last updated timestamp"),
+  expiresAt: z.date().nullable().optional().describe("expiry timestamp"),
+  updatedAt: z.date().nullable().describe("Last updated timestamp"),
 });
 
 const fieldTypeSchema = z.enum([
@@ -165,56 +165,70 @@ export const field = z.object({
 export const createFormFieldsInputModel = z.object({
   id: z.string().describe("Id of the form"),
   field: field.describe("Field to be added"),
-  logic: z.array(
-    z.object({
-      fieldId: z.string(),
-      dependsOnFieldId: z.string(),
-      operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
-      value: z.any(),
-      action: z.enum(["show", "hide"]),
-    })
-  ).optional().describe("optional conditional logic rules"),
+  logic: z
+    .array(
+      z.object({
+        fieldId: z.string(),
+        dependsOnFieldId: z.string(),
+        operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
+        value: z.any(),
+        action: z.enum(["show", "hide"]),
+      }),
+    )
+    .optional()
+    .describe("optional conditional logic rules"),
 });
 export const createFormFieldsOutputModel = z.object({
   formId: z.string().describe("form id"),
-  fields: z.array(field).describe("array of fields"),
-  logic: z.array(
-    z.object({
-      fieldId: z.string(),
-      dependsOnFieldId: z.string(),
-      operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
-      value: z.any(),
-      action: z.enum(["show", "hide"]),
-    })
-  ).optional().describe("conditional logic rules saved with the form"),
+  fields: z.array(z.any()).describe("array of fields"),
+  logic: z
+    .array(
+      z.object({
+        fieldId: z.string(),
+        dependsOnFieldId: z.string(),
+        operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
+        value: z.any(),
+        action: z.enum(["show", "hide"]),
+      }),
+    )
+    .optional()
+    .describe("conditional logic rules saved with the form")
+    .nullable(),
 });
 
 export const updateFormFieldsInputModel = z.object({
   formId: z.string().describe("Id of the form"),
   fields: z.array(field).describe("fields to set on the form"),
-  logic: z.array(
-    z.object({
-      fieldId: z.string(),
-      dependsOnFieldId: z.string(),
-      operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
-      value: z.any(),
-      action: z.enum(["show", "hide"]),
-    })
-  ).optional().describe("optional conditional logic rules"),
+  logic: z
+    .array(
+      z.object({
+        fieldId: z.string(),
+        dependsOnFieldId: z.string(),
+        operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
+        value: z.any(),
+        action: z.enum(["show", "hide"]),
+      }),
+    )
+    .optional()
+    .describe("optional conditional logic rules"),
 });
 
 export const updateFormFieldsOutputModel = z.object({
   formId: z.string().describe("form id"),
-  fields: z.array(field).describe("array of fields"),
-  logic: z.array(
-    z.object({
-      fieldId: z.string(),
-      dependsOnFieldId: z.string(),
-      operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
-      value: z.any(),
-      action: z.enum(["show", "hide"]),
-    })
-  ).optional().describe("conditional logic rules saved with the form"),
+  fields: z.array(z.any()).describe("array of fields"),
+  logic: z
+    .array(
+      z.object({
+        fieldId: z.string(),
+        dependsOnFieldId: z.string(),
+        operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
+        value: z.any(),
+        action: z.enum(["show", "hide"]),
+      }),
+    )
+    .optional()
+    .describe("conditional logic rules saved with the form")
+    .nullable(),
 });
 
 export const publishFormInputModel = z.object({
@@ -222,18 +236,62 @@ export const publishFormInputModel = z.object({
   title: z.string().describe("title of the form"),
   description: z.string().optional().describe("description of the form"),
   fields: z.array(field).describe("fields to save on the form"),
-  logic: z.array(
-    z.object({
-      fieldId: z.string(),
-      dependsOnFieldId: z.string(),
-      operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
-      value: z.any(),
-      action: z.enum(["show", "hide"]),
-    })
-  ).optional().describe("optional conditional logic rules"),
+  logic: z
+    .array(
+      z.object({
+        fieldId: z.string(),
+        dependsOnFieldId: z.string(),
+        operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than"]),
+        value: z.any(),
+        action: z.enum(["show", "hide"]),
+      }),
+    )
+    .optional()
+    .describe("optional conditional logic rules"),
 });
 
 export const publishFormOutputModel = getFormByIdOutputModel.extend({
   redirectUrl: z.string().describe("Public redirect URL for the published form"),
   accessKey: z.string().nullable().optional().describe("Access key, if any"),
+});
+
+export const responseData = z.object({
+  id: z.string().describe("Id of the response"),
+  answers: z.record(z.string(), z.any()).describe("Submitted answers keyed by field id"),
+  browser: z.string().nullable().optional().describe("Browser metadata"),
+  os: z.string().nullable().optional().describe("OS metadata"),
+  country: z.string().nullable().optional().describe("Country metadata"),
+  durationSeconds: z.number().nullable().optional().describe("Duration spent on the form"),
+  submittedAt: z.union([z.string(), z.date()]).describe("Submitted timestamp"),
+});
+
+export const submitFormResponseInputModel = z.object({
+  formId: z.string().describe("Id of the form"),
+  slug: z.string().describe("slug of the form"),
+  accessKey: z.string().optional().describe("Access key for unlisted forms"),
+  answers: z.record(z.string(), z.any()).describe("Submitted answers keyed by field id"),
+  browser: z.string().optional().describe("Browser metadata"),
+  os: z.string().optional().describe("OS metadata"),
+  country: z.string().optional().describe("Country metadata"),
+  durationSeconds: z.number().int().min(0).optional().describe("Duration spent on the form"),
+});
+
+export const submitFormResponseOutputModel = z.object({
+  id: z.string().describe("Id of the saved response"),
+  formId: z.string().describe("Id of the form"),
+  responseCount: z.number().describe("Updated response count"),
+  submittedAt: z.union([z.string(), z.date()]).describe("Submitted timestamp"),
+});
+
+export const getFormResponsesInputModel = z.object({
+  formId: z.string().describe("Id of the form"),
+});
+
+export const getFormResponsesOutputModel = z.object({
+  formId: z.string().describe("Id of the form"),
+  title: z.string().describe("title of the form"),
+  slug: z.string().describe("slug of the form"),
+  fields: z.array(field).describe("fields on the form"),
+  responseCount: z.number().describe("Total responses stored for the form"),
+  responses: z.array(responseData).describe("Saved responses for the form"),
 });

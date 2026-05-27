@@ -45,6 +45,9 @@ type UseGetPublicFormByIdParams = {
   accessKey?: string;
 };
 
+type UseGetFormResponsesParams = {
+  formId?: string;
+};
 
 export const useGetForm = ({ pageSize = 5, page = 1 }: UseGetFormsParams = {}) => {
   const {
@@ -69,7 +72,7 @@ export const useGetForm = ({ pageSize = 5, page = 1 }: UseGetFormsParams = {}) =
 export const useGetFormById = ({ formId }: UseGetFormByIdParams = {}) => {
   const query = trpc.form.getFormById.useQuery(
     { formId: formId ?? "" },
-    { enabled: Boolean(formId) }
+    { enabled: Boolean(formId) },
   );
 
   return {
@@ -89,12 +92,57 @@ export const useGetPublicFormById = ({
       slug: slug ?? "",
       accessKey,
     },
-    { enabled: Boolean(formId && slug) }
+    { enabled: Boolean(formId && slug) },
   );
 
   return {
     ...query,
     publicFormById: query.data,
+  };
+};
+
+export const useGetFormResponses = ({ formId }: UseGetFormResponsesParams = {}, options?: Parameters<typeof trpc.form.getFormResponses.useQuery>[1]) => {
+  const query = trpc.form.getFormResponses.useQuery(
+    { formId: formId ?? "" },
+    { enabled: Boolean(formId), refetchOnWindowFocus: true }
+  );
+
+  return {
+    ...query,
+    formResponsesById: query.data,
+    ...options
+  };
+};
+
+export const useSubmitFormResponse = () => {
+  const utils = trpc.useUtils();
+  const {
+    mutateAsync: submitFormResponseAsync,
+    mutate: submitFormResponse,
+    error,
+    failureCount,
+    isError,
+    isIdle,
+    isSuccess,
+    status,
+  } = trpc.form.submitFormResponse.useMutation({
+    onSuccess: async (_data, variables) => {
+      const formId = variables.formId
+      await utils.form.getFormById.invalidate({ formId });
+      await utils.form.getFormResponses.invalidate({ formId });
+      await utils.form.getFormsDataByUserId.invalidate();
+    },
+  });
+
+  return {
+    submitFormResponseAsync,
+    submitFormResponse,
+    error,
+    failureCount,
+    isError,
+    isIdle,
+    isSuccess,
+    status,
   };
 };
 

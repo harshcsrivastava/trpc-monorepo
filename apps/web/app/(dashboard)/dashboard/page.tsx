@@ -68,7 +68,9 @@ export default function Page() {
         <div className="px-6 py-5 border-b border-[#626262] flex items-center justify-between">
           <div>
             <h3 className="text-[18px] font-black tracking-[0.08em] uppercase">
-              {totalCount > 0 ? `Your Last ${totalCount > 3 ? "3" : `${totalCount}`} Forms` : `Create your first form today`}
+              {totalCount > 0
+                ? `Your Last ${totalCount > 3 ? "3" : `${totalCount}`} Forms`
+                : `Create your first form today`}
             </h3>
             <div className="text-[12px] text-muted-foreground uppercase tracking-[0.12em] mt-1">
               All forms you&apos;ve created

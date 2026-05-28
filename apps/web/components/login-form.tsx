@@ -20,6 +20,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const router = useRouter();
   const { signInUserWithEmailAndPasswordAsync } = useSignIn();
   const { register, handleSubmit, reset } = useForm<LoginFormValues>();
+  const monoStyle = { fontFamily: "var(--font-geist-mono)" };
 
   const onSubmit = async (values: LoginFormValues) => {
     const { id } = await signInUserWithEmailAndPasswordAsync({
@@ -44,6 +45,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
+                  style={monoStyle}
                   id="email"
                   type="email"
                   placeholder="m@example.com"
@@ -61,13 +63,19 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required {...register("password")} />
+                <Input
+                  style={monoStyle}
+                  id="password"
+                  type="password"
+                  required
+                  {...register("password")}
+                />
               </Field>
               <Field>
                 <Button type="submit">Login</Button>
-                <Button variant="outline" type="button">
+                {/* <Button variant="outline" type="button">
                   Login with Google
-                </Button>
+                </Button> */}
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <Link href="/signup">Sign up</Link>
                 </FieldDescription>

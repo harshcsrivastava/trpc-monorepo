@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { useSignUp } from "~/hooks/api/auth";
+import { showGlobalErrorToast } from "~/lib/global-error-toast";
 
 type SignupFormValues = {
   fullName: string;
@@ -23,8 +24,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const onSubmit = async (values: SignupFormValues) => {
     if (values.confirmPassword !== values.password) {
-      reset();
-
+      // reset();
+      showGlobalErrorToast(new Error("Password Mismatch"))
       return;
     }
     const { id } = await createUserWithEmailAndPasswordAsync({
@@ -36,6 +37,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     router.replace("/dashboard");
     reset();
   };
+  const monoStyle = { fontFamily: "var(--font-geist-mono)" };
 
   return (
     <Card {...props}>
@@ -49,6 +51,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             <Field>
               <FieldLabel htmlFor="fullName">Full Name</FieldLabel>
               <Input
+                style={monoStyle}
                 id="fullName"
                 type="text"
                 placeholder="John Doe"
@@ -64,6 +67,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 placeholder="m@example.com"
                 required
                 {...register("email")}
+                style={monoStyle}
               />
               <FieldDescription>
                 We&apos;ll use this to contact you. We will not share your email with anyone else.
@@ -71,7 +75,13 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             </Field>
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>
-              <Input id="password" type="password" required {...register("password")} />
+              <Input
+                style={monoStyle}
+                id="password"
+                type="password"
+                required
+                {...register("password")}
+              />
               <FieldDescription>Must be at least 8 characters long.</FieldDescription>
             </Field>
             <Field>
@@ -80,6 +90,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 id="confirm-password"
                 type="password"
                 required
+                style={monoStyle}
                 {...register("confirmPassword")}
               />
               <FieldDescription>Please confirm your password.</FieldDescription>
@@ -87,9 +98,9 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             <FieldGroup>
               <Field>
                 <Button type="submit">Create Account</Button>
-                <Button variant="outline" type="button">
+                {/* <Button variant="outline" type="button">
                   Sign up with Google
-                </Button>
+                </Button> */}
                 <FieldDescription className="px-6 text-center">
                   Already have an account? <Link href="/login">Sign in</Link>
                 </FieldDescription>

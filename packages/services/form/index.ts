@@ -139,15 +139,13 @@ class FormService {
 
     throw new Error("Invalid position for index calculation");
   }
-  private generateAccessKey() {
-    return String(Math.floor(100000 + Math.random() * 900000));
-  }
+
   public async createFormWithTitleAndDescription(payload: CreateFormWithTitleAndDescriptionType) {
     const { title, description, creatorId } =
       await createFormWithTitleAndDescriptionInput.parseAsync(payload);
 
     const slug = this.createSlugFromInput(title);
-    const accessKey = this.generateAccessKey();
+    const accessKey = this.createAccessKey();
     const formTableResult = await db
       .insert(formsTable)
       .values({
@@ -461,7 +459,7 @@ class FormService {
 
     const newField = {
       ...field,
-      // id,
+      id,
       index: idx,
       label_slug: labelSlug,
     };
